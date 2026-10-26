@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const backendUrl = process.env.BACKEND_INTERNAL_URL || "https://mulex-backend.onrender.com";
+const backendUrl = process.env.BACKEND_INTERNAL_URL || "https://mulex-backend-k9jc.onrender.com";
 
 const nextConfig: NextConfig = {
   turbopack: {

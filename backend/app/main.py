@@ -64,7 +64,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
+@app.middleware("http")
+async def normalize_path_middleware(request, call_next):
+    # Normalize duplicate consecutive slashes (e.g. //dashboard/summary -> /dashboard/summary)
+    path = request.scope.get("path", "")
+    if "//" in path:
+        import re
+        request.scope["path"] = re.sub(r"/+", "/", path)
+    return await call_next(request)
+
+# Include Routers with /api prefix
 app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(accounts_router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(money_trail_router, prefix="/api/investigations", tags=["Money Trail"])
@@ -76,6 +85,18 @@ app.include_router(alerts_router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(search_router, prefix="/api/search", tags=["Search"])
 app.include_router(health_router, prefix="/api", tags=["System Health"])
 
+# Also include Routers without /api prefix for maximum client flexibility
+app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard (Direct)"])
+app.include_router(accounts_router, prefix="/accounts", tags=["Accounts (Direct)"])
+app.include_router(money_trail_router, prefix="/investigations", tags=["Money Trail (Direct)"])
+app.include_router(networks_router, prefix="/networks", tags=["Networks (Direct)"])
+app.include_router(complaints_router, prefix="/complaints", tags=["Complaints (Direct)"])
+app.include_router(investigations_router, prefix="/investigations", tags=["Investigations (Direct)"])
+app.include_router(reports_router, prefix="/reports", tags=["Reports (Direct)"])
+app.include_router(alerts_router, prefix="/alerts", tags=["Alerts (Direct)"])
+app.include_router(search_router, prefix="/search", tags=["Search (Direct)"])
+app.include_router(health_router, tags=["System Health (Direct)"])
+
 @app.get("/")
 def root():
     return {
@@ -84,3 +105,4 @@ def root():
         "environment": settings.ENVIRONMENT,
         "docs_url": "/docs"
     }
+

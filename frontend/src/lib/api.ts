@@ -16,19 +16,33 @@ import {
 } from "../types";
 
 const getApiBase = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  let base = process.env.NEXT_PUBLIC_API_URL;
+  if (!base || base.trim() === "") {
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return "/api";
+    }
+    return "http://127.0.0.1:8000/api";
   }
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-    return "/api";
+  base = base.trim().replace(/\/+$/, "");
+  if (!base.endsWith("/api")) {
+    base = `${base}/api`;
   }
-  return "http://127.0.0.1:8000/api";
+  return base;
 };
 
 const API_BASE = getApiBase();
 
+function buildUrl(path: string): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  if (API_BASE.endsWith("/api") && cleanPath.startsWith("/api/")) {
+    return `${API_BASE}${cleanPath.substring(4)}`;
+  }
+  return `${API_BASE}${cleanPath}`;
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
+  const targetUrl = buildUrl(url);
+  const res = await fetch(targetUrl, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -103,7 +117,7 @@ export const api = {
   getInvestigationBrief: (investigationOrAccountId: string) =>
     fetchJson<InvestigationBrief>(`/reports/${investigationOrAccountId}`),
   getPdfBriefUrl: (investigationOrAccountId: string) =>
-    `${API_BASE}/reports/${investigationOrAccountId}/pdf`,
+    buildUrl(`/reports/${investigationOrAccountId}/pdf`),
 
   // Alerts
   getAlerts: (severity?: string, status?: string) => {
